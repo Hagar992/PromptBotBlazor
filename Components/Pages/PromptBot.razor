@@ -1,0 +1,261 @@
+﻿@page "/promptbot"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Web
+@using PromptBotBlazor.Services
+@inject MLService MLService
+
+<h3>Prompt Bot</h3>
+
+<div class="prompt-container">
+    <label for="prompt-input" class="prompt-label">Enter your prompt:</label>
+    <input id="prompt-input"
+           @bind="prompt"
+           placeholder="Type your text here"
+           class="prompt-input"
+           @onkeyup="HandleKeyUp" />
+
+    <div class="button-group">
+        <button @onclick="TrainModel"
+                disabled="@isTraining"
+                class="btn btn-primary">
+            @(isTraining ? "Training..." : "Train Model")
+        </button>
+
+        <button @onclick="SubmitPrompt"
+                disabled="@(!isModelTrained || isProcessing)"
+                class="btn btn-secondary">
+            @(isProcessing ? "Processing..." : "Send")
+        </button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="alert @alertClass">
+        @message
+        @if (!string.IsNullOrEmpty(detailedError))
+        {
+            <button @onclick="ToggleErrorDetails" class="btn btn-sm btn-link">
+                @(showErrorDetails ? "Hide details" : "Show details")
+            </button>
+            @if (showErrorDetails)
+            {
+                <div class="error-details">@detailedError</div>
+            }
+        }
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(result))
+{
+    <div class="result-box">
+        <h4>Result:</h4>
+        <p>@result</p>
+    </div>
+}
+
+@code {
+    private string prompt = string.Empty;
+    private string result = string.Empty;
+    private string message = string.Empty;
+    private string detailedError = string.Empty;
+    private bool isTraining = false;
+    private bool isProcessing = false;
+    private bool isModelTrained = false;
+    private bool showErrorDetails = false;
+    private string alertClass => message.Contains("success") ? "alert-success" : "alert-danger";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // تحقق من حالة النموذج عند تحميل الصفحة
+        await CheckModelStatus();
+    }
+
+    private async Task CheckModelStatus()
+    {
+        try
+        {
+            bool modelFileExists = File.Exists("model.zip");
+            bool modelIsFunctionallyReady = modelFileExists &&
+                !new[] { "Model not trained.", "Error during prediction." }
+                    .Contains(MLService.Predict("test"));
+
+            isModelTrained = modelFileExists && modelIsFunctionallyReady;
+            message = isModelTrained
+                ? Messages.ModelReady
+                : modelFileExists
+                    ? Messages.ModelExistsButBroken
+                    : Messages.ModelNeedsTraining;
+        }
+        catch (Exception ex)
+        {
+            isModelTrained = false;
+            message = Messages.ModelCheckError;
+            detailedError = $"فشل في التحقق من حالة النموذج: {ex.Message}\nتأكد من وجود ملف data.csv وأنه بالتنسيق الصحيح.";
+        }
+        StateHasChanged();
+    }
+
+    private async Task TrainModel()
+    {
+        // بدء عملية التدريب
+        SetTrainingState(true);
+        message = Messages.TrainingStarted;
+
+        try
+        {
+            var success = await Task.Run(() => MLService.TrainModel());
+            isModelTrained = success;
+
+            message = success ? Messages.TrainingSuccess : Messages.TrainingFail;
+            if (!success)
+            {
+                detailedError = Messages.PossibleIssues;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = Messages.TrainingError;
+            detailedError = $"فشل في تدريب النموذج: {ex.Message}\nتأكد من وجود ملف data.csv وأنه يحتوي على بيانات كافية.";
+        }
+        finally
+        {
+            SetTrainingState(false);
+        }
+    }
+
+    private async Task SubmitPrompt()
+    {
+        // التحقق من وجود نص في المدخل
+        if (string.IsNullOrWhiteSpace(prompt))
+        {
+            message = Messages.PromptRequired;
+            return;
+        }
+
+        // بدء عملية التنبؤ
+        SetProcessingState(true);
+
+        try
+        {
+            // جلب الرد من النموذج
+            result = await Task.Run(() => MLService.Predict(prompt));
+            message = $"تم التنبؤ بنجاح بناءً على النموذج المدرب.";
+            detailedError = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            result = string.Empty;
+            message = Messages.PredictionError;
+            detailedError = $"حدث خطأ أثناء التنبؤ: {ex.Message}\nتأكد من أن النموذج مدرب بشكل صحيح.";
+        }
+        finally
+        {
+            SetProcessingState(false);
+        }
+    }
+
+    private void HandleKeyUp(KeyboardEventArgs e)
+    {
+        // السماح بإرسال المدخل بالضغط على Enter
+        if (e.Key == "Enter" && isModelTrained && !isProcessing)
+        {
+            SubmitPrompt();
+        }
+    }
+
+    private void ToggleErrorDetails()
+    {
+        // إظهار/إخفاء تفاصيل الخطأ
+        showErrorDetails = !showErrorDetails;
+    }
+
+    private void SetTrainingState(bool state)
+    {
+        // تحديث حالة التدريب وتحديث الواجهة
+        isTraining = state;
+        StateHasChanged();
+    }
+
+    private void SetProcessingState(bool state)
+    {
+        // تحديث حالة التنبؤ وتحديث الواجهة
+        isProcessing = state;
+        StateHasChanged();
+    }
+
+    private static class Messages
+    {
+        public const string TrainingStarted = "Training model started...";
+        public const string TrainingSuccess = "Model trained successfully! You can now make predictions.";
+        public const string TrainingFail = "Training failed. Please check your data file.";
+        public const string TrainingError = "Training error occurred";
+        public const string ModelReady = "Model is ready for predictions.";
+        public const string ModelExistsButBroken = "Model file exists but not functioning properly. Please retrain.";
+        public const string ModelNeedsTraining = "Model needs training.";
+        public const string ModelCheckError = "Error checking model status";
+        public const string PredictionSuccess = "Prediction completed successfully";
+        public const string PredictionError = "Error during prediction. Please check the details.";
+        public const string PromptRequired = "Please enter a prompt first";
+        public const string PossibleIssues =
+            "Possible issues:\n1. data.csv file missing\n2. Invalid data format\n3. Insufficient data";
+    }
+}
+
+<style>
+    .prompt-container {
+        max-width: 600px;
+        margin: 20px auto;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+    }
+
+    .prompt-input {
+        width: 100%;
+        padding: 8px;
+        margin: 10px 0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .button-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .alert {
+        padding: 10px;
+        border-radius: 4px;
+        margin: 15px 0;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    .result-box {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #e7f5fe;
+        border-left: 4px solid #2196F3;
+    }
+
+    .error-details {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #fff3f3;
+        border: 1px solid #ffd6d6;
+        border-radius: 4px;
+        white-space: pre-wrap;
+        font-family: monospace;
+    }
+</style>
