@@ -15,20 +15,37 @@
         </article>
     </main>
 </div>
+
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
-<!-- ✅ Footer Section with Social Icons -->
-<footer style="position: fixed; bottom: 0; width: 100%;height:7%; background-color: #032046; color: white; text-align: center; padding: 10px 0; z-index: 1000;">
-    <a href="https://github.com/Hagar992" target="_blank" style="margin: 0 15px; color: white; text-decoration: none;">
-        <i class="bi bi-github" style="font-size: 1.5rem;"></i>
-    </a>
-    <a href="https://www.linkedin.com/in/hagar-atia-%F0%9F%87%B5%F0%9F%87%B8-b8740a250?lipi=urn%3Ali%3Apage%3Ad_flagship3_profile_view_base_contact_details%3B5bhhiQa8RciXtVPAp1vWeQ%3D%3D" target="_blank" style="margin: 0 15px; color: white; text-decoration: none;">
-        <i class="bi bi-linkedin" style="font-size: 1.5rem;"></i>
-    </a>
-    <a href="mailto:shamsatia96@gmail.com" target="_blank" style="margin: 0 15px; color: white; text-decoration: none;">
-        <i class="bi bi-envelope-fill" style="font-size: 1.5rem;"></i>
-    </a>
+<!-- ✅ Footer Section -->
+<footer style="position: fixed; bottom: 0; width: 100%; height: 7%; background-color: #2A0533; color: white; z-index: 1000; display: flex; align-items: center; justify-content: space-between; padding: 0 20px;">
+    <div>
+        <p style="margin: 0; font-size: 0.8rem; color: white;">
+            © @DateTime.Now.Year PromptBotBlazor Project - Implemented By ENG: Hagar Atia (.NET Developer)
+        </p>
+    </div>
+
+    <div>
+        <a href="https://github.com/Hagar992" target="_blank" style="margin: 0 10px; color: white; text-decoration: none;">
+            <i class="bi bi-github" style="font-size: 1.5rem;"></i>
+        </a>
+        <a href="https://www.linkedin.com/in/hagar-atia-%F0%9F%87%B5%F0%9F%87%B8-b8740a250?lipi=urn%3Ali%3Apage%3Ad_flagship3_profile_view_base_contact_details%3B5bhhiQa8RciXtVPAp1vWeQ%3D%3D" target="_blank" style="margin: 0 10px; color: white; text-decoration: none;">
+            <i class="bi bi-linkedin" style="font-size: 1.5rem;"></i>
+        </a>
+        <a href="mailto:shamsatia96@gmail.com" target="_blank" style="margin: 0 10px; color: white; text-decoration: none;">
+            <i class="bi bi-envelope-fill" style="font-size: 1.5rem;"></i>
+        </a>
+    </div>
 </footer>
+
+<style>
+    footer a i:hover {
+        transform: scale(1.3);
+        transition: transform 0.3s ease;
+        color: #591677;
+    }
+</style>
 
 <div id="blazor-error-ui">
     An unhandled error has occurred.
