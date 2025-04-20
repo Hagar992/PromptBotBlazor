@@ -46,8 +46,12 @@ The solution applies **Clean Code Principles**, such as:
 
 ---
 
-## 🖼️ Screenshots  
-_![image](https://github.com/user-attachments/assets/85e53dd5-9b1b-4558-8691-3052e0c2b386)
+## 🖼️ Screenshots 
+_____
+![image](https://github.com/user-attachments/assets/f64613dd-d9a2-4530-a8b0-2b773b400df3)
+![image](https://github.com/user-attachments/assets/049bc404-1d11-47d1-84b3-da9b09011521)
+
+
 _
 
 ---
