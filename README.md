@@ -1,4 +1,4 @@
-#🤖 PromptBotBlazor Documentation
+# 🤖 PromptBotBlazor Documentation
 ___________________________
 
 #Project Overview
