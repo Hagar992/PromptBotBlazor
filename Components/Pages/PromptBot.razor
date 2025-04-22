@@ -9,7 +9,7 @@
     <label for="prompt-input" class="prompt-label">Enter your prompt:</label>
     <input id="prompt-input"
            @bind="prompt"
-           placeholder="Type your text here"
+           placeholder="Ask Anything..."
            class="prompt-input"
            @onkeyup="HandleKeyUp" />
 
@@ -25,20 +25,20 @@
 @if (showAddResponse)
 {
     <div class="prompt-container">
-        <label for="response-input" class="prompt-label">السؤال مش موجود. من فضلك أدخل الإجابة:</label>
+        <label for="response-input" class="prompt-label">The question does not exist. Please enter the answer:</label>
         <input id="response-input"
                @bind="newResponse"
-               placeholder="أدخل الإجابة هنا"
+               placeholder="Enter the answer here"
                class="prompt-input" />
         <div class="button-group">
             <button @onclick="AddNewResponse"
                     disabled="@(string.IsNullOrWhiteSpace(newResponse))"
                     class="btn btn-primary">
-                إضافة الإجابة
+                Add the answer
             </button>
             <button @onclick="CancelAddResponse"
                     class="btn btn-secondary">
-                إلغاء
+                Exit
             </button>
         </div>
     </div>
@@ -128,7 +128,7 @@
         catch (Exception ex)
         {
             message = Messages.DataLoadError;
-            detailedError = $"فشل في تحميل البيانات: {ex.Message}\nتأكد من وجود ملف data.csv وأنه بالتنسيق الصحيح.";
+            detailedError = $"Failure to download data: {ex.Message}\nEnsure that there is a Data.csv file and that it is in the correct coordination.";
         }
         StateHasChanged();
     }
@@ -151,7 +151,7 @@
             if (promptResponses.TryGetValue(prompt.Trim(), out var response))
             {
                 result = response;
-                message = Messages.ResponseFound;
+               // message = Messages.ResponseFound;
                 showAddResponse = false;
             }
             else
@@ -166,7 +166,7 @@
         {
             result = string.Empty;
             message = Messages.ResponseError;
-            detailedError = $"حدث خطأ أثناء البحث عن الرد: {ex.Message}";
+            detailedError = $"Make a mistake : {ex.Message}";
         }
         finally
         {
@@ -195,7 +195,7 @@
         catch (Exception ex)
         {
             message = Messages.ResponseAddError;
-            detailedError = $"حدث خطأ أثناء إضافة الإجابة: {ex.Message}";
+            detailedError = $"An error occurred while adding the answer: {ex.Message}";
         }
         StateHasChanged();
     }
@@ -231,19 +231,20 @@
 
     private static class Messages
     {
-        public const string DataFileCreated = "تم إنشاء ملف data.csv. يمكنك الآن إدخال نص للحصول على رد.";
-        public const string DataFileMissing = "ملف data.csv غير موجود. من فضلك أنشئ الملف وأضف البيانات.";
-        public const string DataFileEmpty = "ملف data.csv فارغ. من فضلك أضف بيانات للعمل.";
-        public const string DataLoadedSuccessfully = "تم تحميل البيانات بنجاح! يمكنك الآن إدخال نص للحصول على رد.";
-        public const string DataLoadError = "حدث خطأ أثناء تحميل البيانات";
-        public const string ResponseFound = "تم العثور على رد مطابق!";
-        public const string NoResponseFound = "لم يتم العثور على رد مطابق للنص المدخل.";
-        public const string ResponseError = "حدث خطأ أثناء البحث عن الرد";
-        public const string ResponseAdded = "تم إضافة الإجابة بنجاح!";
-        public const string ResponseAddError = "حدث خطأ أثناء إضافة الإجابة";
-        public const string AddResponseCancelled = "تم إلغاء إضافة الإجابة.";
-        public const string PromptRequired = "من فضلك أدخل نصًا أولاً";
+        public const string DataFileCreated = "The file data.csv has been created. You can now enter text to get a response.";
+        public const string DataFileMissing = "The file data.csv is missing. Please create the file and add some data.";
+        public const string DataFileEmpty = "The file data.csv is empty. Please add some data to work with.";
+        public const string DataLoadedSuccessfully = "Data loaded successfully! You can now enter text to get a response.";
+        public const string DataLoadError = "An error occurred while loading the data.";
+        //public const string ResponseFound = "A matching response was found!";
+        public const string NoResponseFound = "No matching response found for the entered text.";
+        public const string ResponseError = "An error occurred while searching for a response.";
+        public const string ResponseAdded = "Response added successfully!";
+        public const string ResponseAddError = "An error occurred while adding the response.";
+        public const string AddResponseCancelled = "Adding the response was cancelled.";
+        public const string PromptRequired = "Please enter some text first.";
     }
+
 }
 
 <style>
