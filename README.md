@@ -50,11 +50,13 @@ Clean Architecture: For structuring the codebase.
 
 ![image](https://github.com/user-attachments/assets/3f7ba325-8ab5-4189-be24-156e4ecaa49f)
 
-![image](https://github.com/user-attachments/assets/4905b24f-e115-4f59-97c3-ab23be7656b2)
+![image](https://github.com/user-attachments/assets/05e9cb01-0f59-46cd-b212-53eef5bf6861)
 
-![image](https://github.com/user-attachments/assets/0d69d0ea-50c5-4f69-bf70-aa7f367b1f82)
+![image](https://github.com/user-attachments/assets/a700ea8f-30df-4d61-aec5-32811b1fb6d0)
 
-![image](https://github.com/user-attachments/assets/2ce7e7a9-e8a2-449f-8075-7ecfa101e72d)
+![image](https://github.com/user-attachments/assets/52ae8851-c6d6-4cd4-94c1-e6ba455146f2)
+
+![image](https://github.com/user-attachments/assets/c1c6684a-8105-4ba1-8917-e4e88a554024)
 
 
 
