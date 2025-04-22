@@ -1,8 +1,7 @@
 ﻿@page "/promptbot"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Web
-@using PromptBotBlazor.Services
-@inject MLService MLService
+@using System.IO
 
 <h3>Prompt Bot</h3>
 
@@ -15,19 +14,35 @@
            @onkeyup="HandleKeyUp" />
 
     <div class="button-group">
-        <button @onclick="TrainModel"
-                disabled="@isTraining"
-                class="btn btn-primary">
-            @(isTraining ? "Training..." : "Train Model")
-        </button>
-
         <button @onclick="SubmitPrompt"
-                disabled="@(!isModelTrained || isProcessing)"
+                disabled="@isProcessing"
                 class="btn btn-secondary">
             @(isProcessing ? "Processing..." : "Send")
         </button>
     </div>
 </div>
+
+@if (showAddResponse)
+{
+    <div class="prompt-container">
+        <label for="response-input" class="prompt-label">السؤال مش موجود. من فضلك أدخل الإجابة:</label>
+        <input id="response-input"
+               @bind="newResponse"
+               placeholder="أدخل الإجابة هنا"
+               class="prompt-input" />
+        <div class="button-group">
+            <button @onclick="AddNewResponse"
+                    disabled="@(string.IsNullOrWhiteSpace(newResponse))"
+                    class="btn btn-primary">
+                إضافة الإجابة
+            </button>
+            <button @onclick="CancelAddResponse"
+                    class="btn btn-secondary">
+                إلغاء
+            </button>
+        </div>
+    </div>
+}
 
 @if (!string.IsNullOrEmpty(message))
 {
@@ -59,69 +74,63 @@
     private string result = string.Empty;
     private string message = string.Empty;
     private string detailedError = string.Empty;
-    private bool isTraining = false;
     private bool isProcessing = false;
-    private bool isModelTrained = false;
     private bool showErrorDetails = false;
+    private bool showAddResponse = false;
+    private string newResponse = string.Empty;
+    private Dictionary<string, string> promptResponses = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     private string alertClass => message.Contains("success") ? "alert-success" : "alert-danger";
 
     protected override async Task OnInitializedAsync()
     {
-        // تحقق من حالة النموذج عند تحميل الصفحة
-        await CheckModelStatus();
+        // تحميل البيانات من data.csv عند بدء الصفحة
+        await LoadPromptResponses();
     }
 
-    private async Task CheckModelStatus()
+    private async Task LoadPromptResponses()
     {
         try
         {
-            bool modelFileExists = File.Exists("model.zip");
-            bool modelIsFunctionallyReady = modelFileExists &&
-                !new[] { "Model not trained.", "Error during prediction." }
-                    .Contains(MLService.Predict("test"));
+            var dataPath = Path.Combine(Directory.GetCurrentDirectory(), "data.csv");
+            if (!File.Exists(dataPath))
+            {
+                // إنشاء ملف data.csv فاضي مع العنوان لو مش موجود
+                await File.WriteAllTextAsync(dataPath, "Text,Response\n");
+                message = Messages.DataFileCreated;
+                return;
+            }
 
-            isModelTrained = modelFileExists && modelIsFunctionallyReady;
-            message = isModelTrained
-                ? Messages.ModelReady
-                : modelFileExists
-                    ? Messages.ModelExistsButBroken
-                    : Messages.ModelNeedsTraining;
+            // قراءة ملف data.csv
+            var lines = await File.ReadAllLinesAsync(dataPath);
+            if (lines.Length <= 1) // إذا كان الملف فاضي أو فيه بس العنوان
+            {
+                message = Messages.DataFileEmpty;
+                return;
+            }
+
+            // تخطي السطر الأول (العنوان)
+            foreach (var line in lines.Skip(1))
+            {
+                var parts = line.Split(',');
+                if (parts.Length >= 2)
+                {
+                    var text = parts[0].Trim('"'); // النص (Text)
+                    var response = parts[1].Trim('"'); // الرد (Response)
+                    if (!string.IsNullOrEmpty(text) && !string.IsNullOrEmpty(response))
+                    {
+                        promptResponses[text] = response;
+                    }
+                }
+            }
+
+            message = Messages.DataLoadedSuccessfully;
         }
         catch (Exception ex)
         {
-            isModelTrained = false;
-            message = Messages.ModelCheckError;
-            detailedError = $"فشل في التحقق من حالة النموذج: {ex.Message}\nتأكد من وجود ملف data.csv وأنه بالتنسيق الصحيح.";
+            message = Messages.DataLoadError;
+            detailedError = $"فشل في تحميل البيانات: {ex.Message}\nتأكد من وجود ملف data.csv وأنه بالتنسيق الصحيح.";
         }
         StateHasChanged();
-    }
-
-    private async Task TrainModel()
-    {
-        // بدء عملية التدريب
-        SetTrainingState(true);
-        message = Messages.TrainingStarted;
-
-        try
-        {
-            var success = await Task.Run(() => MLService.TrainModel());
-            isModelTrained = success;
-
-            message = success ? Messages.TrainingSuccess : Messages.TrainingFail;
-            if (!success)
-            {
-                detailedError = Messages.PossibleIssues;
-            }
-        }
-        catch (Exception ex)
-        {
-            message = Messages.TrainingError;
-            detailedError = $"فشل في تدريب النموذج: {ex.Message}\nتأكد من وجود ملف data.csv وأنه يحتوي على بيانات كافية.";
-        }
-        finally
-        {
-            SetTrainingState(false);
-        }
     }
 
     private async Task SubmitPrompt()
@@ -133,21 +142,31 @@
             return;
         }
 
-        // بدء عملية التنبؤ
+        // بدء عملية البحث عن الرد
         SetProcessingState(true);
 
         try
         {
-            // جلب الرد من النموذج
-            result = await Task.Run(() => MLService.Predict(prompt));
-            message = $"تم التنبؤ بنجاح بناءً على النموذج المدرب.";
+            // البحث عن الرد في القاموس
+            if (promptResponses.TryGetValue(prompt.Trim(), out var response))
+            {
+                result = response;
+                message = Messages.ResponseFound;
+                showAddResponse = false;
+            }
+            else
+            {
+                result = string.Empty;
+                message = Messages.NoResponseFound;
+                showAddResponse = true; // إظهار حقل إدخال الإجابة
+            }
             detailedError = string.Empty;
         }
         catch (Exception ex)
         {
             result = string.Empty;
-            message = Messages.PredictionError;
-            detailedError = $"حدث خطأ أثناء التنبؤ: {ex.Message}\nتأكد من أن النموذج مدرب بشكل صحيح.";
+            message = Messages.ResponseError;
+            detailedError = $"حدث خطأ أثناء البحث عن الرد: {ex.Message}";
         }
         finally
         {
@@ -155,10 +174,43 @@
         }
     }
 
+    private async Task AddNewResponse()
+    {
+        try
+        {
+            var dataPath = Path.Combine(Directory.GetCurrentDirectory(), "data.csv");
+            // إضافة السؤال والإجابة الجديدة إلى data.csv
+            var newLine = $"\"{prompt.Trim()}\",\"{newResponse.Trim()}\"\n";
+            await File.AppendAllTextAsync(dataPath, newLine);
+
+            // تحديث القاموس
+            promptResponses[prompt.Trim()] = newResponse.Trim();
+
+            // تحديث الواجهة
+            result = newResponse;
+            message = Messages.ResponseAdded;
+            showAddResponse = false;
+            newResponse = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            message = Messages.ResponseAddError;
+            detailedError = $"حدث خطأ أثناء إضافة الإجابة: {ex.Message}";
+        }
+        StateHasChanged();
+    }
+
+    private void CancelAddResponse()
+    {
+        showAddResponse = false;
+        newResponse = string.Empty;
+        message = Messages.AddResponseCancelled;
+    }
+
     private void HandleKeyUp(KeyboardEventArgs e)
     {
         // السماح بإرسال المدخل بالضغط على Enter
-        if (e.Key == "Enter" && isModelTrained && !isProcessing)
+        if (e.Key == "Enter" && !isProcessing)
         {
             SubmitPrompt();
         }
@@ -170,35 +222,27 @@
         showErrorDetails = !showErrorDetails;
     }
 
-    private void SetTrainingState(bool state)
-    {
-        // تحديث حالة التدريب وتحديث الواجهة
-        isTraining = state;
-        StateHasChanged();
-    }
-
     private void SetProcessingState(bool state)
     {
-        // تحديث حالة التنبؤ وتحديث الواجهة
+        // تحديث حالة البحث وتحديث الواجهة
         isProcessing = state;
         StateHasChanged();
     }
 
     private static class Messages
     {
-        public const string TrainingStarted = "Training model started...";
-        public const string TrainingSuccess = "Model trained successfully! You can now make predictions.";
-        public const string TrainingFail = "Training failed. Please check your data file.";
-        public const string TrainingError = "Training error occurred";
-        public const string ModelReady = "Model is ready for predictions.";
-        public const string ModelExistsButBroken = "Model file exists but not functioning properly. Please retrain.";
-        public const string ModelNeedsTraining = "Model needs training.";
-        public const string ModelCheckError = "Error checking model status";
-        public const string PredictionSuccess = "Prediction completed successfully";
-        public const string PredictionError = "Error during prediction. Please check the details.";
-        public const string PromptRequired = "Please enter a prompt first";
-        public const string PossibleIssues =
-            "Possible issues:\n1. data.csv file missing\n2. Invalid data format\n3. Insufficient data";
+        public const string DataFileCreated = "تم إنشاء ملف data.csv. يمكنك الآن إدخال نص للحصول على رد.";
+        public const string DataFileMissing = "ملف data.csv غير موجود. من فضلك أنشئ الملف وأضف البيانات.";
+        public const string DataFileEmpty = "ملف data.csv فارغ. من فضلك أضف بيانات للعمل.";
+        public const string DataLoadedSuccessfully = "تم تحميل البيانات بنجاح! يمكنك الآن إدخال نص للحصول على رد.";
+        public const string DataLoadError = "حدث خطأ أثناء تحميل البيانات";
+        public const string ResponseFound = "تم العثور على رد مطابق!";
+        public const string NoResponseFound = "لم يتم العثور على رد مطابق للنص المدخل.";
+        public const string ResponseError = "حدث خطأ أثناء البحث عن الرد";
+        public const string ResponseAdded = "تم إضافة الإجابة بنجاح!";
+        public const string ResponseAddError = "حدث خطأ أثناء إضافة الإجابة";
+        public const string AddResponseCancelled = "تم إلغاء إضافة الإجابة.";
+        public const string PromptRequired = "من فضلك أدخل نصًا أولاً";
     }
 }
 

@@ -1,5 +1,4 @@
 ﻿using PromptBotBlazor.Components;
-using PromptBotBlazor.Services;
 
 namespace PromptBotBlazor
 {
@@ -9,37 +8,24 @@ namespace PromptBotBlazor
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            
+            // إعداد Razor Components لتطبيق Blazor Server
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
 
-            // تسجيل MLService مع التحقق من الإعدادات
-            builder.Services.AddScoped<MLService>(); 
-           
-
             var app = builder.Build();
 
-            
+            // إعدادات البيئة
             if (!app.Environment.IsDevelopment())
             {
                 app.UseExceptionHandler("/Error");
                 app.UseHsts();
-            }
-            else
-            {
-                
-                app.Use(async (context, next) =>
-                {
-                    var mlService = context.RequestServices.GetService<MLService>();
-                    Console.WriteLine($"Model condition: {(mlService?.IsModelReady() ?? false ?" Ready" : "Not ready")}");
-                    await next();
-                });
             }
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseAntiforgery();
 
+            // ربط Razor Components مع وضع الـ Interactive Server
             app.MapRazorComponents<App>()
                 .AddInteractiveServerRenderMode();
 
